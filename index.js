@@ -16,12 +16,12 @@ if (!fs.existsSync(videosDir)) {
   fs.mkdirSync(videosDir);
 }
 
-// Ruta para interfaz
+// Ruta para interfaz (index.html)
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Ruta API de descarga
+// Ruta para descargar video
 app.post("/api/download", async (req, res) => {
   const { url } = req.body;
 
@@ -33,13 +33,15 @@ app.post("/api/download", async (req, res) => {
     const uniqueId = Date.now();
     const outputTemplate = path.join(videosDir, `video_${uniqueId}.%(ext)s`);
 
-    // Ejecutar yt-dlp sin opciones que requieren ffmpeg
-    await ytdlp(url, {
+    const output = await ytdlp(url, {
       output: outputTemplate,
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
-      format: "mp4", // formato sencillo, evita usar `bestvideo+bestaudio`
+      format: "mp4",
+      // Eliminamos las opciones que requieren ffmpeg:
+      // addMetadata: true,
+      // embedThumbnail: true,
     });
 
     // Buscar el archivo descargado
@@ -62,10 +64,9 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
-// Servir los videos
+// Servir archivos descargados
 app.use("/videos", express.static(path.join(__dirname, "videos")));
 
-// Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor en ejecución en http://localhost:${PORT}`);
+  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
 });
