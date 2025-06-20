@@ -39,10 +39,9 @@ app.post("/api/download", async (req, res) => {
       noWarnings: true,
       preferFreeFormats: true,
       format: "mp4",
-      // Eliminamos las opciones que requieren ffmpeg:
-      // addMetadata: true,
-      // embedThumbnail: true,
+      cookies: path.join(__dirname, "cookies.txt"),
     });
+
 
     // Buscar el archivo descargado
     const files = fs.readdirSync(videosDir).filter(f => f.includes(`video_${uniqueId}`));
