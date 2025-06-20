@@ -5,7 +5,6 @@ node_modules/
 .env
 
 # Carpetas temporales o generadas
-videos/
 *.mp4
 
 # Archivos del sistema
