@@ -1,61 +1,71 @@
 const express = require("express");
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
+const ytdlp = require("yt-dlp-exec");
 const path = require("path");
 const fs = require("fs");
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware para recibir JSON
+app.use(express.static("public"));
 app.use(express.json());
 
-// Servir archivos estáticos (videos descargados)
-app.use("/public", express.static(path.join(__dirname, "public")));
+// Crear carpeta de videos si no existe
+const videosDir = path.join(__dirname, "videos");
+if (!fs.existsSync(videosDir)) {
+  fs.mkdirSync(videosDir);
+}
 
-// Ruta para mostrar la interfaz HTML
+// Ruta para interfaz
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Ruta para descargar video
-app.post("/api/download", (req, res) => {
+// Ruta API de descarga
+app.post("/api/download", async (req, res) => {
   const { url } = req.body;
 
   if (!url) {
     return res.status(400).json({ success: false, error: "No se proporcionó la URL" });
   }
 
-  const id = Date.now(); // Nombre único basado en la hora
-  const output = `public/${id}.%(ext)s`;
-  const command = `"./yt-dlp.exe" -o "${output}" "${url}"`; // Usamos el yt-dlp.exe local
+  try {
+    const uniqueId = Date.now();
+    const outputTemplate = path.join(videosDir, `video_${uniqueId}.%(ext)s`);
 
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error("Error al ejecutar yt-dlp:", stderr);
-      return res.status(500).json({ success: false, error: "Error al descargar el video" });
+    // Ejecutar yt-dlp sin opciones que requieren ffmpeg
+    await ytdlp(url, {
+      output: outputTemplate,
+      noCheckCertificates: true,
+      noWarnings: true,
+      preferFreeFormats: true,
+      format: "mp4", // formato sencillo, evita usar `bestvideo+bestaudio`
+    });
+
+    // Buscar el archivo descargado
+    const files = fs.readdirSync(videosDir).filter(f => f.includes(`video_${uniqueId}`));
+    if (files.length === 0) {
+      return res.status(500).json({ success: false, error: "No se encontró el archivo descargado" });
     }
 
-    // Buscar archivo descargado
-    fs.readdir("public", (err, files) => {
-      if (err) {
-        return res.status(500).json({ success: false, error: "No se pudo listar archivos" });
-      }
+    const filename = files[0];
+    const filepath = path.join(videosDir, filename);
 
-      const file = files.find(f => f.startsWith(`${id}.`));
-      if (!file) {
-        return res.status(404).json({ success: false, error: "Archivo no encontrado" });
-      }
-
-      return res.json({
-        success: true,
-        file,
-        downloadUrl: `/public/${file}`
-      });
+    return res.json({
+      success: true,
+      filename,
+      download_url: `/videos/${filename}`
     });
-  });
+  } catch (err) {
+    console.error("Error al descargar:", err);
+    return res.status(500).json({ success: false, error: "Falló la descarga", detalle: err.message });
+  }
 });
+
+// Servir los videos
+app.use("/videos", express.static(path.join(__dirname, "videos")));
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  console.log(`Servidor en ejecución en http://localhost:${PORT}`);
 });

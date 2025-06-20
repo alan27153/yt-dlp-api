@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>descargador YouTube - yt-dlp API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      font-size: 1em;
+    }
+
+    .message {
+      margin-top: 20px;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Descargador de YouTube</h1>
+  <p>Ingresa la URL del video:</p>
+
+  <form id="formulario">
+    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=xxxx" required />
+    <button type="submit">Descargar</button>
+  </form>
+
+  <div class="message" id="mensaje"></div>
+
+  <script>
+    document.getElementById("formulario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const url = document.getElementById("url").value;
+      const mensaje = document.getElementById("mensaje");
+      mensaje.innerHTML = "⏳ Descargando...";
+
+      try {
+        const res = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          mensaje.innerHTML = `<p class="success">✅ Video descargado: <a href="${data.download_url}" download target="_blank">${data.filename}</a></p>`;
+        } else {
+          mensaje.innerHTML = `<p class="error">❌ Error: ${data.error}</p>`;
+        }
+      } catch (error) {
+        mensaje.innerHTML = `<p class="error">❌ Error de red o del servidor.</p>`;
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
