@@ -40,8 +40,8 @@ app.post("/api/download", async (req, res) => {
       preferFreeFormats: true,
       format: "mp4",
       cookies: path.join(__dirname, "cookies.txt"),
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" // 👈 LÍNEA CLAVE
     });
-
 
     // Buscar el archivo descargado
     const files = fs.readdirSync(videosDir).filter(f => f.includes(`video_${uniqueId}`));
